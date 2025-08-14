@@ -1,8 +1,9 @@
 <?php
 
-use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\AdminController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ProductController;
@@ -35,14 +36,25 @@ Route::get('/', function () {
     ]);
 });
 
+// Routes cho Admin - Chỉ admin mới có thể truy cập
+Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
+    Route::get('/', [AdminController::class, 'index'])->name('index');
+    // TODO: Add admin routes for users, products, and orders if needed.
+});
+
+
 Route::get('/dashboard', function () {
+    $user = Auth::user();
+    
+    if ($user && $user->isAdmin()) {
+        return redirect()->route('admin.dashboard');
+    }
+    
     return Inertia::render('Dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
-Route::middleware('auth')->group(function () {
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-});
 
+// Profile routes được chuyển sang routes/settings.php
+require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';

@@ -7,7 +7,7 @@
             <li><a href="{{ route('orders.track') }}">Theo dõi đơn hàng</a></li>
             <li style="margin-left: auto;">
                 @auth
-                    <a href="{{ route('profile') }}" class="btn btn-primary">Xem Profile</a>
+                    <a href="{{ route('profile.edit') }}" class="btn btn-primary">Xem Profile</a>
                 @else
                     <a href="{{ route('login') }}" class="btn btn-secondary">Đăng nhập</a>
                 @endauth

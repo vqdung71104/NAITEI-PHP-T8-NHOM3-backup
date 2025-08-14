@@ -61,4 +61,20 @@ class User extends Authenticatable
     {
         return $this->hasMany(Address::class);
     }
+
+    /**
+     * Check if user is admin
+     */
+    public function isAdmin()
+    {
+        return $this->role === 'admin';
+    }
+
+    /**
+     * Check if user is customer
+     */
+    public function isCustomer()
+    {
+        return $this->role === 'customer';
+    }
 }
