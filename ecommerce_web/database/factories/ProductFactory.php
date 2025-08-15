@@ -94,7 +94,8 @@ class ProductFactory extends Factory
             'price' => fake()->randomFloat(0, 50000, 500000),
             'category_id' => Category::factory(),
             'stock' => fake()->numberBetween(0, 100),
-            'image_url' => optional()->fake()->imageUrl(400, 600, 'books', true, 'book'),
+            'image_url' => fake()->imageUrl(400, 600, 'books', true, 'book'),
+            'author' => fake()->name(),
         ];
     }
 
