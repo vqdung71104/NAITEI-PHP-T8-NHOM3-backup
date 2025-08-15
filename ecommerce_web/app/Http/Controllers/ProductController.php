@@ -160,10 +160,10 @@ class ProductController extends Controller{
 
 
 
-            if ($product->category()->exists()) {
+            if ($product->orders()->exists() || $product->reviews()->exists()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Cannot delete product because it belongs to a category'
+                    'message' => 'Cannot delete product because it has associated orders or reviews'
                 ], 400);
             }
 
