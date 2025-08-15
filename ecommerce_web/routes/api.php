@@ -15,3 +15,15 @@ Route::prefix('categories')->group(function () {
         Route::delete('/{id}', [CategoryController::class, 'destroy'])->name('categories.destroy');
     });
 });
+
+Route::prefix('products')->group(function () {
+   
+    Route::get('/', [ProductController::class, 'index'])->name('products.index');
+    Route::get('/{id}', [ProductController::class, 'show'])->name('products.show');
+   
+    Route::middleware('admin')->group(function () {
+        Route::post('/', [ProductController::class, 'store'])->name('products.store');
+        Route::put('/{id}', [ProductController::class, 'update'])->name('products.update');
+        Route::delete('/{id}', [ProductController::class, 'destroy'])->name('products.destroy');
+    });
+});

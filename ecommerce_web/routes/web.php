@@ -40,7 +40,18 @@ Route::get('/', function () {
 Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
     Route::get('/', [AdminController::class, 'index'])->name('index');
-    // TODO: Add admin routes for users, products, and orders if needed.
+    
+    // Category CRUD routes
+    Route::get('/categories', [AdminController::class, 'categories'])->name('categories.index');
+    Route::post('/categories', [AdminController::class, 'storeCategory'])->name('categories.store');
+    Route::put('/categories/{category}', [AdminController::class, 'updateCategory'])->name('categories.update');
+    Route::delete('/categories/{category}', [AdminController::class, 'destroyCategory'])->name('categories.destroy');
+    
+    // Product CRUD routes
+    Route::get('/products', [AdminController::class, 'products'])->name('products.index');
+    Route::post('/products', [AdminController::class, 'storeProduct'])->name('products.store');
+    Route::put('/products/{product}', [AdminController::class, 'updateProduct'])->name('products.update');
+    Route::delete('/products/{product}', [AdminController::class, 'destroyProduct'])->name('products.destroy');
 });
 
 
