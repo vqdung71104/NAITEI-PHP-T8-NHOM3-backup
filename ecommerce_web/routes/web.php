@@ -24,8 +24,10 @@ Route::post('/cart/remove/{index}', [CartController::class, 'remove'])->name('ca
 Route::get('/checkout', [CartController::class, 'checkout'])->name('checkout');
 Route::post('/checkout', [CartController::class, 'processCheckout'])->name('checkout.process');
 
-Route::get('/orders/track', [OrderController::class, 'trackOrders'])->name('orders.track');
-Route::post('/orders/{id}/cancel', [OrderController::class, 'cancel'])->name('orders.cancel');
+// Legacy web routes for backward compatibility
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/orders/track', [OrderController::class, 'trackOrders'])->name('orders.track');
+});
 
 Route::get('/', function () {
     return Inertia::render('Welcome', [
@@ -52,6 +54,17 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::post('/products', [AdminController::class, 'storeProduct'])->name('products.store');
     Route::put('/products/{product}', [AdminController::class, 'updateProduct'])->name('products.update');
     Route::delete('/products/{product}', [AdminController::class, 'destroyProduct'])->name('products.destroy');
+    
+    // Order management routes for admin
+    Route::prefix('orders')->name('orders.')->group(function () {
+        Route::get('/', [OrderController::class, 'index'])->name('index');
+        Route::get('/statistics/overview', [OrderController::class, 'statistics'])->name('statistics');
+        Route::get('/{order}', [OrderController::class, 'show'])->name('show');
+        Route::put('/{order}', [OrderController::class, 'update'])->name('update');
+        Route::delete('/{order}', [OrderController::class, 'destroy'])->name('destroy');
+        Route::post('/{order}/status', [OrderController::class, 'updateStatus'])->name('update-status');
+
+    });
 });
 
 
@@ -66,6 +79,5 @@ Route::get('/dashboard', function () {
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 
-// Profile routes được chuyển sang routes/settings.php
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';
