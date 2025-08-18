@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\LanguageController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
@@ -9,6 +10,7 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\OrderController;
+use Illuminate\Http\Request;
 
 Route::get('/home', [HomeController::class, 'index'])->name('home');
 
@@ -65,6 +67,7 @@ Route::get('/dashboard', function () {
     return Inertia::render('Dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
+Route::post('/lang',  [LanguageController::class, 'changeLanguage'])->name('lang.set');
 
 // Profile routes được chuyển sang routes/settings.php
 require __DIR__.'/settings.php';

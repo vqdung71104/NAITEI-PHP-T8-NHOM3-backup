@@ -13,6 +13,7 @@ class Product extends Model
      *
      * @var array
      */
+    use HasFactory;
     protected $fillable = [
         'name',
         'description',
