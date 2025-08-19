@@ -2,18 +2,24 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
+use App\Models\CartItem;
 
 class CartController extends Controller
 {
     public function index()
     {
-        $cart = session()->get('cart', []);
-        $total = 0;
-        foreach ($cart as $item) {
-            $total += $item['price'] * $item['quantity'];
-        }
-        return view('cart.index', compact('cart', 'total'));
+    // Lấy user hiện tại
+    $user = Auth::user();
+
+    // Lấy tất cả CartItem của user kèm thông tin product
+    $cartItems = CartItem::with('product')
+        ->where('user_id', $user->id)
+        ->get();
+
+    // Truyền vào view
+    return view('cart.index', compact('cartItems'));
     }
 
     public function add(Request $request)
