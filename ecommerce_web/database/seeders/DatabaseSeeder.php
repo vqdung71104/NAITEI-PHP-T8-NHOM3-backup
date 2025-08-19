@@ -19,6 +19,9 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             CategorySeeder::class,
             ProductSeeder::class,
+            AddressSeeder::class,
+            OrderSeeder::class,
+            ReviewSeeder::class,
         ]);
 
         // Tạo products sau khi đã có categories
