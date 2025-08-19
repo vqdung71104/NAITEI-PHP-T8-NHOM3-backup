@@ -1,7 +1,7 @@
 <header>
     <nav>
         <ul>
-            <li><a href="/">Trang chủ</a></li>
+            <li><a href="/home">Trang chủ</a></li>
             <li><a href="/products">Sản phẩm</a></li>
             <li><a href="{{ route('cart.index') }}">Giỏ hàng</a></li>
             <li><a href="{{ route('orders.track') }}">Theo dõi đơn hàng</a></li>

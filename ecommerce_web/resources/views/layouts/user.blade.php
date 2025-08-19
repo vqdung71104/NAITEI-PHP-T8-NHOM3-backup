@@ -8,6 +8,7 @@
 <body>
     @include('partials.user.header')
 
+    
     <main class="container">
         @yield('content')
     </main>
