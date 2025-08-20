@@ -17,8 +17,8 @@ Route::post('/products/{id}/review', [ProductController::class, 'addReview'])->n
 
 Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
 Route::post('/cart/add', [CartController::class, 'add'])->name('cart.add');
-Route::post('/cart/update/{index}', [CartController::class, 'update'])->name('cart.update');
-Route::post('/cart/remove/{index}', [CartController::class, 'remove'])->name('cart.remove');
+Route::post('/cart/update/{cartItem}', [CartController::class, 'update'])->name('cart.update');
+Route::post('/cart/remove/{cartItem}', [CartController::class, 'remove'])->name('cart.remove');
 
 Route::get('/checkout', [CartController::class, 'checkout'])->name('checkout');
 Route::post('/checkout', [CartController::class, 'processCheckout'])->name('checkout.process');
@@ -74,7 +74,7 @@ Route::get('/dashboard', function () {
         return redirect()->route('admin.dashboard');
     }
     
-    return Inertia::render('Dashboard');
+    return redirect()->route('home');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::post('/lang',  [LanguageController::class, 'changeLanguage'])->name('lang.set');

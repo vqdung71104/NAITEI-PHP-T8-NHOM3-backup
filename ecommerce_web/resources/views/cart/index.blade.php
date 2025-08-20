@@ -6,15 +6,6 @@
 
 @section('content')
 
-@php
-    // Tính tổng tạm tính từ CartItem → Product
-    $subtotal = $cartItems->sum(function($item) {
-        return ($item->product->price ?? 0) * $item->quantity;
-    });
-
-    // Phí vận chuyển cố định
-    $shipping = 30000;
-@endphp
 
 <body>
     <div class="container">
@@ -28,43 +19,37 @@
         <div class="cart-content">
             <div class="cart-items">
                 @foreach ($cartItems as $item)
-                    <div class="cart-item">
-                        {{-- Ảnh bìa --}}
-                        <div class="book-cover">
-                            <img src="{{ $item['image'] ?? 'https://via.placeholder.com/80x100' }}"
-                                 alt="{{ $item['name'] }}"
-                                 style="width:100%; height:100%; object-fit:cover;">
-                        </div>
-
-                        {{-- Thông tin sách --}}
-                        <div class="book-info">
-                            <h3>{{ $item->product->name ?? '' }}</h3>
-                            <p>Tác giả: {{ $item->product->author ?? 'Không rõ' }}</p>
-                            <p>Thể loại: {{ $item->product->category ?? 'Chưa phân loại' }}</p>
-                        </div>
-
-                        {{-- Điều khiển số lượng --}}
-                        <div class="quantity-controls">
-                            <form action="#" method="POST">
-                            @csrf
-                                <button type="button" class="quantity-btn minus">-</button>
-                                <input type="number" name="quantity" value="{{ $item['quantity'] }}" min="1" class="quantity-input">
-                                <button type="button" class="quantity-btn plus">+</button>
-                        </form>
-                        </div>
-
-                        {{-- Giá --}}
-                        <div class="price">
-                            {{ number_format(($item->product->price ?? 0) * $item->quantity, 0, ',', '.') }}đ
-                        </div>
-
-                        {{-- Xóa --}}
-                        <form action="#" method="POST">
-                            @csrf
-                            <button class="remove-btn">×</button>
-                        </form>
+                <div class="cart-item" data-id="{{ $item->id }}">
+                    {{-- Ảnh --}}
+                    <div class="book-cover">
+                            <img src="{{ $item->product->image_url ?? 'https://via.placeholder.com/80x100' }}" alt="{{ $item->product->name ?? '' }}" style="width:100%; height:100%; object-fit:cover;">
                     </div>
-            @endforeach
+
+                    {{-- Thông tin --}}
+                    <div class="book-info">
+                        <h3>{{ $item->product->name }}</h3>
+                        <p>Tác giả: {{ $item->product->author ?? 'Không rõ' }}</p>
+                        <p>Thể loại: {{ $item->product->category->name ?? 'Chưa phân loại' }}</p>
+                    </div>
+
+                    {{-- Số lượng --}}
+                    <div class="quantity-controls">
+                        <button type="button" class="quantity-btn minus">-</button>
+                        <input type="number" class="quantity-input" value="{{ $item->quantity }}" min="1" max="{{ $item->product->stock ?? 100 }}" data-price="{{ $item->product->price }}">
+                        <button type="button" class="quantity-btn plus">+</button>
+                    </div>
+
+                    {{-- Giá --}}
+                    <div class="price">{{ number_format($item->product->price * $item->quantity, 0, ',', '.') }}đ</div>
+
+                    {{-- Xoá --}}
+                    <form class="remove-form" method="POST">
+                        @csrf
+                        <button type="button" class="remove-btn">×</button>
+                    </form>
+                    
+                </div>
+                @endforeach
             </div>
 
             {{-- Tóm tắt đơn hàng --}}
@@ -72,15 +57,15 @@
                 <h2>Tóm tắt đơn hàng</h2>
                 <div class="summary-row">
                     <span>Tạm tính:</span>
-                    <span>{{ number_format($subtotal ?? 0, 0, ',', '.') }}đ</span>
+                    <span id="subtotal">{{ number_format($subtotal ?? 0, 0, ',', '.') }}đ</span>
                 </div>
                 <div class="summary-row">
                     <span>Phí vận chuyển:</span>
-                    <span>{{ number_format($shipping ?? 30000, 0, ',', '.') }}đ</span>
+                    <span id="shipping">{{ number_format($shipping ?? 30000, 0, ',', '.') }}đ</span>
                 </div>
                 <div class="summary-row total">
                     <span>Tổng cộng:</span>
-                    <span>{{ number_format(($subtotal ?? 0) + ($shipping ?? 30000), 0, ',', '.') }}đ</span>
+                    <span id="total">{{ number_format(($subtotal ?? 0) + ($shipping ?? 30000), 0, ',', '.') }}đ</span>
                 </div>
 
                 <form action="#" method="GET">
@@ -88,7 +73,7 @@
                 </form>
 
                 <div class="continue-shopping">
-                    <a href="#">← Tiếp tục mua sắm</a>
+                    <a href="{{ route('home') }}">← Tiếp tục mua sắm</a>
                 </div>
             </div>
         </div>

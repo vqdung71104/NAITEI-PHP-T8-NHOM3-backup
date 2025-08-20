@@ -75,15 +75,18 @@
                 </h3>
 
                         <p class="product-price">{{ number_format($product->price, 0, ',', '.') }} VNĐ</p>
-
-                        <form class="cart-form" onsubmit="addToCart(event, '{{ $product->name }}')">
-                    <input type="hidden" name="name" value="{{ $product->name }}">
-                    <input type="hidden" name="price" value="{{ $product->price }}">
-                            <input type="hidden" name="image" value="{{ $product->image_url ?? 'https://via.placeholder.com/400x400?text=No+Image' }}">
-                    <input type="hidden" name="quantity" value="1">
-                            <button type="submit" class="btn-add-cart">Add to Cart</button>
-                </form>
-
+                        @auth
+                            <!-- Nếu đã đăng nhập, submit form thêm vào giỏ hàng -->
+                            <form action="{{ route('cart.add') }}" method="POST">
+                                @csrf
+                                <input type="hidden" name="product_id" value="{{ $product->id }}">
+                                <input type="hidden" name="quantity" value="1">
+                                <button type="submit" class="btn-add-cart">Add to Cart</button>
+                            </form>
+                        @else
+                            <!-- Nếu chưa đăng nhập, redirect tới /login -->
+                            <a href="{{ route('login') }}" class="btn-add-cart">Add to Cart</a>
+                        @endauth
                         <a href="{{ route('products.detail', $product->id) }}" class="product-details-link">View Details</a>
                     </div>
                 </div>
