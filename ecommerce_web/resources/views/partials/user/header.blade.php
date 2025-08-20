@@ -1,4 +1,5 @@
 @vite(['resources/css/partials/user/header.css', 'resources/js/partials/user/header.js'])
+<meta name="user-logged-in" content="{{ auth()->check() ? '1' : '0' }}">
 <body>
     <header class="page-header">
     <nav>

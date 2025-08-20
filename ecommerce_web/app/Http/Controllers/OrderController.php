@@ -314,7 +314,13 @@ class OrderController extends Controller
     // Backward compatibility method
     public function trackOrders()
     {
-        $orders = session('orders', []);
+        $user = auth()->user();
+        $orders = \App\Models\Order::with('orderItems.product')
+                    ->where('user_id', $user->id)
+                    ->orderBy('created_at', 'desc')
+                    ->get();
+
         return view('orders.track', compact('orders'));
     }
+
 }
