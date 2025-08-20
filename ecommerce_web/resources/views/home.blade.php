@@ -5,6 +5,13 @@
 @vite(['resources/css/home.css', 'resources/js/home.js'])
 
 @section('content')
+
+@if(session('success'))
+    <div class="alert alert-success">
+        {{ session('success') }}
+    </div>
+@endif
+
 <body>
     <div class="container">
         <!-- Header -->
