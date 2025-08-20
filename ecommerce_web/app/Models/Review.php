@@ -16,7 +16,7 @@ class Review extends Model
         'product_id',
         'rating',
         'image_url',
-        'comment',
+        'content',
     ];
     /**
      * Get the user that owns the review.
