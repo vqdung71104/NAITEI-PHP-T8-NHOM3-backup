@@ -8,23 +8,34 @@
                 <li><a href="{{ route('cart.index') }}" class="{{ request()->routeIs('cart.*') ? 'active' : '' }}">Giỏ hàng</a></li>
                 <li><a href="{{ route('orders.track') }}" class="{{ request()->routeIs('orders.track') ? 'active' : '' }}">Theo dõi đơn hàng</a></li>
                 <li class="user-menu">
-                    <!-- Authenticated User -->
-                    <div id="authUser" style="display: none;">
-                        <a href="#" class="btn btn-primary" onclick="toggleDropdown(event)">Xem Profile</a>
-                        <div class="user-dropdown" id="userDropdown">
-                            <a href="#">Profile</a>
-                            <a href="#">Đơn hàng</a>
-                            <a href="#">Cài đặt</a>
-                            <a href="#" onclick="logout()">Đăng xuất</a>
+                    @auth
+                        <div id="authUser">
+                            <a href="#" class="btn btn-primary" onclick="toggleDropdown(event)">Xem Profile</a>
+                            <div class="user-dropdown" id="userDropdown">
+                                <a href="{{ route('home') }}">Profile</a>
+                                <a href="{{ route('orders.track') }}">Đơn hàng</a>
+                                <a href="{{ route('logout') }}"
+                                onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
+                                Đăng xuất
+                                </a>
+                            </div>
+
+                            <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">
+                                @csrf
+                            </form>
                         </div>
-                    </div>
-                    <!-- Guest User -->
-                    <div id="guestUser">
-                        <a href="{{ route('login') }}" class="btn btn-secondary login-btn">Đăng nhập</a>
-                    </div>
-            </li>
+                    @endauth
+
+                    <!-- Người dùng chưa đăng nhập -->
+                    @guest
+                        <div id="guestUser">
+                            <a href="{{ route('login') }}" class="btn btn-secondary login-btn">Đăng nhập</a>
+                        </div>
+                    @endguest
+                </li>
         </ul>
             <button class="mobile-toggle" onclick="toggleMenu()">☰</button>
     </nav>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
 </header>
 </body>

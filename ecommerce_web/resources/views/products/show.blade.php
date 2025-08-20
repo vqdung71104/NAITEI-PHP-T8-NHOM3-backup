@@ -30,12 +30,21 @@
                     <div class="quantity-row">
                         <span>Số lượng</span>
                         <div class="quantity">
-                            <button type="button" onclick="decreaseQuantity()">−</button>
-                            <input type="number" id="quantity" value="1" min="1" max="{{ $product->stock ?? 1 }}" readonly>
-                            <button type="button" onclick="increaseQuantity()">+</button>
+                            <button type="button" class="quantity-btn minus" data-product-id="{{ $product->id }}">−</button>
+                            <input type="number" id="quantity-{{ $product->id }}" value="1" min="1" max="{{ $product->stock ?? 1 }}" readonly>
+                            <button type="button" class="quantity-btn plus" data-product-id="{{ $product->id }}">+</button>
                         </div>
                     </div>
-                    <button class="add-cart" data-id="{{ $product->id }}" data-name="{{ $product->name }}" data-price="{{ $product->price }}" data-image-url="{{ $product->image_url }}">Thêm vào giỏ hàng</button>
+                    @auth
+                        <form id="add-to-cart-form-{{ $product->id }}" action="{{ route('cart.add') }}" method="POST" style="display:inline;">
+                            @csrf
+                            <input type="hidden" name="product_id" value="{{ $product->id }}">
+                            <input type="hidden" name="quantity" id="quantity-input-{{ $product->id }}" value="1">
+                            <button type="submit" class="add-cart">Thêm vào giỏ hàng</button>
+                        </form>
+                    @else
+                        <a href="{{ route('login') }}" class="add-cart">Thêm vào giỏ hàng</a>
+                    @endauth
                 </div>
             </div>
         </div>

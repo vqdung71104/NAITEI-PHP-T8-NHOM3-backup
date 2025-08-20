@@ -1,14 +1,34 @@
-function decreaseQuantity() {
-    const input = document.getElementById('quantity');
-    const value = parseInt(input.value);
-    if (value > 1) input.value = value - 1;
-}
+document.addEventListener('DOMContentLoaded', () => {
+    // Nút +
+    document.querySelectorAll('.quantity-btn.plus').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const productId = btn.dataset.productId;
+            const input = document.getElementById('quantity-' + productId);
+            let value = parseInt(input.value);
+            const max = parseInt(input.max);
+            if (value < max) value++;
+            input.value = value;
 
-function increaseQuantity() {
-    const input = document.getElementById('quantity');
-    const value = parseInt(input.value);
-    if (value < 15) input.value = value + 1;
-}
+            const hiddenInput = document.getElementById('quantity-input-' + productId);
+            if (hiddenInput) hiddenInput.value = value;
+        });
+    });
+
+    // Nút −
+    document.querySelectorAll('.quantity-btn.minus').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const productId = btn.dataset.productId;
+            const input = document.getElementById('quantity-' + productId);
+            let value = parseInt(input.value);
+            if (value > 1) value--;
+            input.value = value;
+
+            const hiddenInput = document.getElementById('quantity-input-' + productId);
+            if (hiddenInput) hiddenInput.value = value;
+        });
+    });
+});
+
 
 function addToCart() {
     const btn = document.querySelector('.add-cart');
