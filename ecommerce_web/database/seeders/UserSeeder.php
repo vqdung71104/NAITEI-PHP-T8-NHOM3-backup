@@ -22,6 +22,14 @@ class UserSeeder extends Seeder
             'email_verified_at' => now(),
         ]);
 
+        User::create([
+            'name' => 'user',
+            'email' => 'user@example.com',
+            'password' => Hash::make('123456789'),
+            'role' => 'customer',
+            'email_verified_at' => now(),
+        ]);
+
         // Tạo một số customer users
         User::create([
             'name' => 'Lê Trọng Khánh',
