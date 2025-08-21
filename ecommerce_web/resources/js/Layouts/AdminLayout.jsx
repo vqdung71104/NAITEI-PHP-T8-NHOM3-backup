@@ -6,20 +6,7 @@ export default function AdminLayout({ children, breadcrumbs, ...props }) {
     <AppLayoutTemplate 
       breadcrumbs={breadcrumbs} 
       {...props}
-      sidebarItems={[
-        {
-          type: 'header',
-          content: 'Admin',
-          onClick: () => {},
-        },
-        {
-          type: 'link',
-          icon: null,
-          text: 'Logout',
-          href: route('logout'),
-          method: 'post',
-        }
-      ]}
+      sidebarItems={[]} // Đặt mảng rỗng để loại bỏ sidebar
       hideBranding={true}
     >
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
