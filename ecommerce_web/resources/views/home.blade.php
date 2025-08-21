@@ -5,19 +5,12 @@
 @vite(['resources/css/home.css', 'resources/js/home.js'])
 
 @section('content')
-
-@if(session('success'))
-    <div class="alert alert-success">
-        {{ session('success') }}
-    </div>
-@endif
-
 <body>
     <div class="container">
         <!-- Header -->
         <header class="header fade-in">
             <h1 class="header-title">BlueMoon</h1>
-            <a href="{{ route('products.viewall') }}" class="btn-primary">Khám phá</a>
+            <a href="{{ route('products.viewall') }}" class="btn-primary">{{ __("Khám phá") }}</a>
         </header>
 
         <!-- Featured Books -->
@@ -36,7 +29,7 @@
                         <h3 class="product-title">{{ $product->name }}</h3>
                         <p class="product-price">{{ number_format($product->price, 0, ',', '.') }} ₫</p>
                         <a href="{{ route('products.detail', $product->id) }}" class="btn-secondary">
-                            Xem chi tiết
+                            {{__("Xem chi tiết")}}
                         </a>
                     </div>
                 </article>
@@ -49,7 +42,7 @@
             <h2 class="promotion-title">Khuyến mãi đặc biệt</h2>
             <p class="promotion-text">Giảm giá 30% sách văn học Việt Nam</p>
             <a href="{{ route('products.viewall', ['category' => 1, 'sort' => 'name', 'keyword' => '']) }}" class="btn-gold">
-                Xem thêm
+                {{__("Xem thêm")}}
             </a>
         </section>
 

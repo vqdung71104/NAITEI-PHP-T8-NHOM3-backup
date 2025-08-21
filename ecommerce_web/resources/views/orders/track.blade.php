@@ -5,6 +5,9 @@
 @section('content')
 
 @vite(['resources/css/orders/track.css', 'resources/js/orders/track.js'])
+<script>
+    window.ordersData = @json($orders);
+</script>
 <body>
     <div class="track-page-header">
         <div class="header-content">

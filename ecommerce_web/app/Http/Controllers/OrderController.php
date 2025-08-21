@@ -135,11 +135,7 @@ class OrderController extends Controller
             'status' => $request->status,
         ]);
     
-        return Inertia::render('AdminDashboard', [
-            'success' => true,
-            'message' => 'Order status updated successfully',
-            'order'   => $order,
-        ]);
+        return redirect()->route('admin.dashboard')->with('success', 'Trạng thái đơn hàng đã được cập nhật thành công');
     }
 
     /**
@@ -271,7 +267,14 @@ class OrderController extends Controller
     // Backward compatibility method
     public function trackOrders()
     {
-        $orders = session('orders', []);
+        $user = auth()->user();
+        
+        // Lấy đơn hàng của user hiện tại từ database
+        $orders = Order::with(['address', 'orderItems.product'])
+                      ->forUser($user->id)
+                      ->orderBy('created_at', 'desc')
+                      ->get();
+        
         return view('orders.track', compact('orders'));
     }
 }

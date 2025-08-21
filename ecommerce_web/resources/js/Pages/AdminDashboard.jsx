@@ -1,5 +1,5 @@
-import { useState} from 'react';
-import AdminLayout from '@/layouts/AdminLayout';
+import { useState, useEffect} from 'react';
+import AdminLayout from '@/Layouts/AdminLayout';
 import { Head, useForm, router } from '@inertiajs/react';
 import { Card, CardContent } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, PieChart } from 'recharts';
@@ -21,7 +21,8 @@ export default function AdminDashboard({
   categories = [],
   products = [],
   orders = [],
-  pagination = {}
+  pagination = {},
+  statistics = {}
 }) {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [currentPage, setCurrentPage] = useState(pagination.current_page || 1);
@@ -35,7 +36,7 @@ export default function AdminDashboard({
   });
   const [selectedStatus, setSelectedStatus] = useState({});
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
-  const [statistics, setStatistics] = useState({});
+  const [localStatistics, setLocalStatistics] = useState({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -138,6 +139,11 @@ export default function AdminDashboard({
   // Order handlers
   const [filteredOrders, setFilteredOrders] = useState(orders);
   const [editingOrder, setEditingOrder] = useState(null);
+
+  // Đồng bộ filteredOrders với orders props khi có thay đổi
+  useEffect(() => {
+    setFilteredOrders(orders);
+  }, [orders]);
   
   // Hàm xử lý nút Find
   const handleFindOrders = () => {
@@ -214,15 +220,17 @@ export default function AdminDashboard({
       return;
     }
 
-    // Chỉ gửi status khi PUT
+    // Gửi status với Inertia form
+    orderForm.setData('status', newStatus);
     orderForm.put(route('admin.orders.update', orderId), {
-      data: { status: newStatus }, // ép chỉ gửi status
       onSuccess: () => {
+        // Redirect sẽ được xử lý tự động bởi Inertia
         setEditingOrder(null);
-        const updatedOrders = orders.map(order =>
-          order.id === orderId ? { ...order, status: newStatus } : order
-        );
-        setFilteredOrders(updatedOrders);
+        setSelectedStatus(prev => {
+          const newState = { ...prev };
+          delete newState[orderId];
+          return newState;
+        });
       },
       onError: (errors) => {
         console.error('Error updating order status:', errors);
@@ -265,69 +273,126 @@ export default function AdminDashboard({
         {/* Dashboard Tab */}
         
         {activeTab === 'dashboard' && (
-          <div className="grid gap-4 md:grid-cols-2">
-            
+          <div className="space-y-6">
             <div className="p-4">
-              <h2 className="text-2xl font-bold mb-4">Dashboard Overview</h2>
+              <h2 className="text-2xl font-bold mb-6 dark:text-white">Dashboard Overview</h2>
           
-              {loading ? (
-                <p>Loading statistics...</p>
-              ) : error ? (
-                <p className="text-red-500">{error}</p>
-              ) : (
-                <>
-                  {/* Cards thống kê */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <div className="bg-white shadow-md rounded-lg p-6">
-                      <h3 className="text-lg font-semibold mb-2">Tổng số đơn hàng</h3>
-                      <p className="text-3xl font-bold">{statistics.total_orders}</p>
-                    </div>
-              
-                    <div className="bg-white shadow-md rounded-lg p-6">
-                      <h3 className="text-lg font-semibold mb-2">Tổng doanh thu</h3>
-                      <p className="text-3xl font-bold">
-                        {statistics.total_revenue?.toLocaleString()} ₫
-                      </p>
-                    </div>
-              
-                    <div className="bg-white shadow-md rounded-lg p-6">
-                      <h3 className="text-lg font-semibold mb-2">Đơn đang xử lý</h3>
-                      <p className="text-3xl font-bold">{statistics.processing_orders}</p>
-                    </div>
-              
-                    <div className="bg-white shadow-md rounded-lg p-6">
-                      <h3 className="text-lg font-semibold mb-2">Đơn đã hủy</h3>
-                      <p className="text-3xl font-bold">{statistics.cancelled_orders}</p>
-                    </div>
-              
-                    <div className="bg-white shadow-md rounded-lg p-6">
-                      <h3 className="text-lg font-semibold mb-2">Đơn đã hoàn thành</h3>
-                      <p className="text-3xl font-bold">{statistics.completed_orders}</p>
-                    </div>
+              {/* Cards thống kê chính */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6 border border-gray-200 dark:border-gray-700">
+                  <h3 className="text-lg font-semibold mb-2 text-gray-700 dark:text-gray-300">Tổng số đơn hàng</h3>
+                  <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">{statistics.total_orders || 0}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    {statistics.recent_orders || 0} đơn trong 7 ngày qua
+                  </p>
+                </div>
+          
+                <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6 border border-gray-200 dark:border-gray-700">
+                  <h3 className="text-lg font-semibold mb-2 text-gray-700 dark:text-gray-300">Tổng doanh thu</h3>
+                  <p className="text-3xl font-bold text-green-600 dark:text-green-400">
+                    {(statistics.total_revenue || 0).toLocaleString('vi-VN')} ₫
+                  </p>
+                </div>
+          
+                <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6 border border-gray-200 dark:border-gray-700">
+                  <h3 className="text-lg font-semibold mb-2 text-gray-700 dark:text-gray-300">Tổng sản phẩm</h3>
+                  <p className="text-3xl font-bold text-purple-600 dark:text-purple-400">{statistics.total_products || 0}</p>
+                  <p className="text-sm text-red-500 dark:text-red-400 mt-1">
+                    {statistics.low_stock_products || 0} sản phẩm sắp hết hàng
+                  </p>
+                </div>
+
+                <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6 border border-gray-200 dark:border-gray-700">
+                  <h3 className="text-lg font-semibold mb-2 text-gray-700 dark:text-gray-300">Danh mục</h3>
+                  <p className="text-3xl font-bold text-orange-600 dark:text-orange-400">{statistics.total_categories || 0}</p>
+                </div>
+              </div>
+
+              {/* Cards thống kê đơn hàng theo trạng thái */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+                <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                  <h4 className="text-sm font-medium mb-1 text-gray-600 dark:text-gray-400">Đang chờ</h4>
+                  <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{statistics.pending_orders || 0}</p>
+                </div>
+                
+                <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                  <h4 className="text-sm font-medium mb-1 text-gray-600 dark:text-gray-400">Đang xử lý</h4>
+                  <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{statistics.processing_orders || 0}</p>
+                </div>
+                
+                <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                  <h4 className="text-sm font-medium mb-1 text-gray-600 dark:text-gray-400">Hoàn thành</h4>
+                  <p className="text-2xl font-bold text-green-600 dark:text-green-400">{statistics.completed_orders || 0}</p>
+                </div>
+                
+                <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                  <h4 className="text-sm font-medium mb-1 text-gray-600 dark:text-gray-400">Đã hủy</h4>
+                  <p className="text-2xl font-bold text-red-600 dark:text-red-400">{statistics.cancelled_orders || 0}</p>
+                </div>
+
+                <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                  <h4 className="text-sm font-medium mb-1 text-gray-600 dark:text-gray-400">Trả hàng</h4>
+                  <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">{statistics.return_orders || 0}</p>
+                </div>
+              </div>
+
+              {/* Biểu đồ và thống kê chi tiết */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                {/* Biểu đồ trạng thái đơn hàng */}
+                <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6 border border-gray-200 dark:border-gray-700">
+                  <h3 className="text-lg font-semibold mb-4 text-gray-700 dark:text-gray-300">Thống kê đơn hàng theo trạng thái</h3>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={[
+                      { name: "Pending", value: statistics.pending_orders || 0, fill: "#EAB308" },
+                      { name: "Processing", value: statistics.processing_orders || 0, fill: "#3B82F6" },
+                      { name: "Completed", value: statistics.completed_orders || 0, fill: "#10B981" },
+                      { name: "Cancelled", value: statistics.cancelled_orders || 0, fill: "#EF4444" },
+                      { name: "Return", value: statistics.return_orders || 0, fill: "#8B5CF6" }
+                    ]}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" />
+                      <YAxis allowDecimals={false} />
+                      <Tooltip />
+                      <Legend />
+                      <Bar dataKey="value" name="Số lượng" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Top danh mục bán chạy */}
+                <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6 border border-gray-200 dark:border-gray-700">
+                  <h3 className="text-lg font-semibold mb-4 text-gray-700 dark:text-gray-300">Top danh mục bán chạy</h3>
+                  <div className="space-y-3">
+                    {(statistics.category_stats || []).slice(0, 5).map((category, index) => (
+                      <div key={category.id} className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                        <span className="font-medium text-gray-700 dark:text-gray-300">
+                          #{index + 1} {category.name}
+                        </span>
+                      </div>
+                    ))}
                   </div>
-              
-                  {/* Biểu đồ */}
-                  <div className="bg-white shadow-md rounded-lg p-6">
-                    <h3 className="text-lg font-semibold mb-4">Thống kê đơn hàng theo trạng thái</h3>
-                    <ResponsiveContainer width="100%" height={300}>
-                      <BarChart data={[
-                        { name: "Processing", value: statistics.processing_orders || 0 },
-                        { name: "Completed", value: statistics.completed_orders || 0 },
-                        { name: "Cancelled", value: statistics.cancelled_orders || 0 }
-                      ]}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="name" />
-                        <YAxis allowDecimals={false} />
-                        <Tooltip />
-                        <Legend />
-                        <Bar dataKey="value" fill="#4F46E5" name="Số lượng" />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </>
+                </div>
+              </div>
+
+              {/* Doanh thu theo tháng */}
+              {statistics.monthly_revenue && statistics.monthly_revenue.length > 0 && (
+                <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6 border border-gray-200 dark:border-gray-700">
+                  <h3 className="text-lg font-semibold mb-4 text-gray-700 dark:text-gray-300">Doanh thu 12 tháng gần đây</h3>
+                  <ResponsiveContainer width="100%" height={400}>
+                    <BarChart data={statistics.monthly_revenue}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="month" />
+                      <YAxis />
+                      <Tooltip 
+                        formatter={(value) => [(value || 0).toLocaleString('vi-VN') + ' ₫', 'Doanh thu']}
+                      />
+                      <Legend />
+                      <Bar dataKey="revenue" fill="#10B981" name="Doanh thu (₫)" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
               )}
             </div>
-        
           </div>
         )}
 
@@ -373,6 +438,18 @@ export default function AdminDashboard({
                   </button>
                 )}
               </form>
+
+              {/* Display validation errors for categories */}
+              {Object.keys(categoryForm.errors).length > 0 && (
+                <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+                  <strong>Lỗi:</strong>
+                  <ul className="mt-2 list-disc list-inside">
+                    {Object.values(categoryForm.errors).map((error, index) => (
+                      <li key={index}>{error}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
@@ -506,6 +583,18 @@ export default function AdminDashboard({
                   )}
                 </div>
               </form>
+
+              {/* Display validation errors for products */}
+              {Object.keys(productForm.errors).length > 0 && (
+                <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+                  <strong>Lỗi:</strong>
+                  <ul className="mt-2 list-disc list-inside">
+                    {Object.values(productForm.errors).map((error, index) => (
+                      <li key={index}>{error}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
               {/* Products Table */}
               <div className="overflow-x-auto">
