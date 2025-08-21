@@ -19,7 +19,7 @@ class AdminController extends Controller
             // Get data for dashboard
             $categories = Category::all();
             $products = Product::with('category')->get();
-            $orders = Order::with(['user', 'items.product'])->get();
+            $orders = Order::with(['user'])->get();
             
             // Pagination data
             $pagination = [
@@ -110,6 +110,7 @@ class AdminController extends Controller
             'stock' => 'required|integer|min:0',
             'category_id' => 'required|exists:categories,id',
             'image_url' => 'nullable|string|max:255',
+            'author' => 'nullable|string|max:255',
         ]);
         
         $product = Product::create($validated);
@@ -126,6 +127,7 @@ class AdminController extends Controller
             'stock' => 'required|integer|min:0',
             'category_id' => 'required|exists:categories,id',
             'image_url' => 'nullable|string|max:255',
+            'author' => 'nullable|string|max:255',
         ]);
         
         $product->update($validated);
@@ -138,4 +140,46 @@ class AdminController extends Controller
         $product->delete();
         return redirect()->back()->with('success', 'Product deleted successfully.');
     }
+
+    // Order management
+    public function orders()
+    {
+        $orders = Order::all();
+        return redirect()->back()->with('orders', $orders);
+    }
+
+    public function storeOrder(Request $request)
+    {
+        $validated = $request->validate([
+            'user_id' => 'required|exists:users,id',
+            'total' => 'required|numeric|min:0',
+            'status' => 'required|string|max:255',
+            'address_id' => 'required|exists:addresses,id',
+        ]);
+
+        $order = Order::create($validated);
+
+        return redirect()->back()->with('success', 'Order created successfully.');
+    }
+
+    public function updateOrder(Request $request, Order $order)
+    {
+        $validated = $request->validate([
+            'user_id' => 'required|exists:users,id',
+            'total' => 'required|numeric|min:0',
+            'status' => 'required|string|max:255',
+            'address_id' => 'required|exists:addresses,id',
+        ]);
+
+        $order->update($validated);
+
+        return redirect()->back()->with('success', 'Order updated successfully.');
+    }
+
+    public function destroyOrder(Order $order)
+    {
+        $order->delete();
+        return redirect()->back()->with('success', 'Order deleted successfully.');
+    }
+
 }

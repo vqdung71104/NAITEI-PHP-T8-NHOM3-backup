@@ -1,7 +1,11 @@
 <?php
 
 
+
+
 namespace App\Http\Controllers;
+
+
 
 
 use App\Models\Product;
@@ -11,16 +15,29 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\ValidationException;
 
 
+
+
 class ProductController extends Controller{
-    public function index(): JsonResponse
+
+
+    public function index()
     {
-        try {
-            $products = Product::all();
-            return response()->json(['success' => true, 'data' => $products, 'message' => 'Get products successfully'],200);
-        } catch (\Exception $e) {
-            return response()->json(['error' => 'Failed to retrieve products'], 500);
-        }
+        $products = Product::all();
+        return view('products.index', compact('products'));
     }
+
+
+    public function show($id)
+    {
+        $product = Product::findOrFail($id);
+        $reviews = session("reviews.{$id}", []);
+        return view('products.show', compact('product', 'reviews'));
+    }
+
+
+   
+
+
 
 
     public function store(Request $request): JsonResponse
@@ -35,7 +52,11 @@ class ProductController extends Controller{
             ]);
 
 
+
+
             $product = Product::create($validated);
+
+
 
 
             return response()->json([
@@ -43,6 +64,8 @@ class ProductController extends Controller{
                 'data' => $product,
                 'message' => 'Create product success'
             ], 201);
+
+
 
 
         } catch (ValidationException $e) {
@@ -60,35 +83,9 @@ class ProductController extends Controller{
         }
     }
 
-    public function show(string $id): JsonResponse
-    {
-        try {
-            $product = Product::find($id);
 
+   
 
-            if (!$product) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Product not found'
-                ], 404);
-            }
-
-
-            return response()->json([
-                'success' => true,
-                'data' => $product,
-                'message' => 'Get product successfully'
-            ], 200);
-
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Error get product',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
 
     public function update(Request $request, string $id): JsonResponse
     {
@@ -96,12 +93,16 @@ class ProductController extends Controller{
             $product = Product::find($id);
 
 
+
+
             if (!$product) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Product not found'
                 ], 404);
             }
+
+
 
 
             $validated = $request->validate([
@@ -113,7 +114,11 @@ class ProductController extends Controller{
             ]);
 
 
+
+
             $product->update($validated);
+
+
 
 
             return response()->json([
@@ -121,6 +126,8 @@ class ProductController extends Controller{
                 'data' => $product->fresh(),
                 'message' => 'Update product successfully'
             ], 200);
+
+
 
 
         } catch (ValidationException $e) {
@@ -139,10 +146,14 @@ class ProductController extends Controller{
     }
 
 
+
+
     public function destroy(string $id): JsonResponse
     {
         try {
             $product = Product::find($id);
+
+
 
 
             if (!$product) {
@@ -155,6 +166,10 @@ class ProductController extends Controller{
 
 
 
+
+
+
+
             if ($product->orders()->exists() || $product->reviews()->exists()) {
                 return response()->json([
                     'success' => false,
@@ -163,13 +178,19 @@ class ProductController extends Controller{
             }
 
 
+
+
             $product->delete();
+
+
 
 
             return response()->json([
                 'success' => true,
                 'message' => 'Delete product successfully'
             ], 200);
+
+
 
 
         } catch (\Exception $e) {
@@ -181,28 +202,41 @@ class ProductController extends Controller{
         }
     }
 
+
     public function addReview(ReviewRequest $request, $id)
     {
         // Đảm bảo sản phẩm tồn tại (phòng trường hợp post trực tiếp sai ID)
         $product = Product::findOrFail($id);
 
+
         // Chỉ lấy dữ liệu đã qua validate
         $data = $request->validated(); // ['author' => ..., 'content' => ...];
+
 
         $reviews = session("reviews.{$product->id}", []);
         $reviews[] = $data;
 
+
         session(["reviews.{$product->id}" => $reviews]);
+
 
         return redirect()
             ->route('products.show', $product->id)
             ->with('success', 'Đánh giá đã được gửi!');
     }
 
+
+    // public function category()
+    // {
+    //     return $this->belongsTo(Category::class);
+    // }
+
+
     public function viewall(Request $request)
     {
         // Query ban đầu
         $query = Product::query();
+
 
         // Tìm kiếm theo từ khóa (name, author, category)
         if ($request->filled('keyword')) {
@@ -213,10 +247,12 @@ class ProductController extends Controller{
         });
         }
 
+
         // Lọc theo category
         if ($request->filled('category')) {
             $query->where('category_id', $request->input('category'));
         }
+
 
         // Sắp xếp
         if ($request->filled('sort')) {
@@ -233,14 +269,18 @@ class ProductController extends Controller{
             }
         }
 
+
         // Phân trang
         $products = $query->paginate(20)->appends($request->query());
+
 
         // Lấy tất cả categories để truyền ra view
         $categories = Category::all();
 
+
         return view('products.index', compact('products', 'categories'));
     }
+
 
     public function detail($id)
     {
@@ -248,5 +288,10 @@ class ProductController extends Controller{
         return view('products.show', compact('product'));
     }
 }
+
+
+
+
+
 
 
