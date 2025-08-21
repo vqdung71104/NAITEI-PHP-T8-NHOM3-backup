@@ -1,6 +1,14 @@
-import { useState } from 'react';
-import AdminLayout from '@/Layouts/AdminLayout';
-import { Head, useForm } from '@inertiajs/react';
+import { useState} from 'react';
+import AdminLayout from '@/layouts/AdminLayout';
+import { Head, useForm, router } from '@inertiajs/react';
+import { Card, CardContent } from "@/components/ui/card";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, PieChart } from 'recharts';
+import axios from 'axios';
+
+
+
+
+
 
 const breadcrumbs = [
   {
@@ -20,6 +28,16 @@ export default function AdminDashboard({
   const [editingCategory, setEditingCategory] = useState(null);
   const [editingProduct, setEditingProduct] = useState(null);
   const itemsPerPage = pagination.per_page || 10;
+  const [filters, setFilters] = useState({ 
+    status: '', 
+    startDate: '', 
+    endDate: '' 
+  });
+  const [selectedStatus, setSelectedStatus] = useState({});
+  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
+  const [statistics, setStatistics] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   // Forms
   const categoryForm = useForm({
@@ -33,7 +51,12 @@ export default function AdminDashboard({
     price: '',
     stock: '',
     category_id: '',
-    image_url: ''
+    image_url: '',
+    author: '',
+  });
+
+  const orderForm = useForm({
+    status: ''
   });
 
   const paginatedProducts = products.slice(
@@ -101,7 +124,8 @@ export default function AdminDashboard({
       price: product.price,
       stock: product.stock,
       category_id: product.category_id,
-      image_url: product.image_url || ''
+      image_url: product.image_url || '',
+      author: product.author || ''
     });
   };
 
@@ -109,6 +133,112 @@ export default function AdminDashboard({
     if (confirm('Are you sure you want to delete this product?')) {
       productForm.delete(route('admin.products.destroy', productId));
     }
+  };
+
+  // Order handlers
+  const [filteredOrders, setFilteredOrders] = useState(orders);
+  const [editingOrder, setEditingOrder] = useState(null);
+  
+  // Hàm xử lý nút Find
+  const handleFindOrders = () => {
+    let result = orders;
+  
+    if (filters.status) {
+      result = result.filter(
+        (order) => order.status.toLowerCase() === filters.status.toLowerCase()
+      );
+    }
+  
+    if (filters.startDate && filters.endDate) {
+      const startDate = new Date(filters.startDate);
+      const endDate = new Date(filters.endDate);
+      endDate.setHours(23, 59, 59, 999); // Đặt thời gian về cuối ngày
+      
+      result = result.filter((order) => {
+        const orderDate = new Date(order.created_at);
+        return orderDate >= startDate && orderDate <= endDate;
+      });
+    }
+    
+    setFilteredOrders(result);
+  };
+  
+  // Hàm format lại ngày giờ
+  const formatDateTime = (dateString) => {
+    const date = new Date(dateString);
+    if (isNaN(date)) return dateString;
+    return date.toLocaleString(); 
+  };
+
+  // Hàm xử lý khi ngày bắt đầu thay đổi
+  const handleStartDateChange = (date) => {
+    setFilters(prev => ({ 
+      ...prev, 
+      startDate: date,
+      // Nếu ngày kết thúc nhỏ hơn ngày bắt đầu mới, cập nhật ngày kết thúc
+      endDate: prev.endDate && new Date(prev.endDate) < new Date(date) ? date : prev.endDate
+    }));
+  };
+
+  // Hàm bắt đầu chỉnh sửa trạng thái
+  const handleStartEditOrder = (order) => {
+    setEditingOrder(order.id);
+    setSelectedStatus(prev => ({
+      ...prev,
+      [order.id]: order.status
+    }));
+
+    // Chỉ cần set status vào form để chuẩn bị update
+    orderForm.setData({
+      status: order.status
+    });
+  };
+
+  // Khi thay đổi status trong select
+  const handleStatusChange = (orderId, newStatus) => {
+    setSelectedStatus(prev => ({
+      ...prev,
+      [orderId]: newStatus
+    }));
+
+    // Cập nhật vào form data
+    orderForm.setData('status', newStatus);
+  };
+
+  // Lưu trạng thái mới
+  const handleSaveStatus = (orderId) => {
+    const newStatus = selectedStatus[orderId];
+
+    if (!newStatus) {
+      alert('Please select a status');
+      return;
+    }
+
+    // Chỉ gửi status khi PUT
+    orderForm.put(route('admin.orders.update', orderId), {
+      data: { status: newStatus }, // ép chỉ gửi status
+      onSuccess: () => {
+        setEditingOrder(null);
+        const updatedOrders = orders.map(order =>
+          order.id === orderId ? { ...order, status: newStatus } : order
+        );
+        setFilteredOrders(updatedOrders);
+      },
+      onError: (errors) => {
+        console.error('Error updating order status:', errors);
+        alert('Failed to update order status');
+      }
+    });
+  };
+
+  // Hàm hủy chỉnh sửa
+  const handleCancelEdit = (orderId) => {
+    setEditingOrder(null);
+    setSelectedStatus(prev => {
+      const newState = { ...prev };
+      delete newState[orderId];
+      return newState;
+    });
   };
 
   return (
@@ -133,20 +263,71 @@ export default function AdminDashboard({
         </div>
 
         {/* Dashboard Tab */}
+        
         {activeTab === 'dashboard' && (
           <div className="grid gap-4 md:grid-cols-2">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-              <h3 className="text-lg font-medium mb-4">Sales Overview</h3>
-              <div className="h-64 bg-gray-100 dark:bg-gray-700 rounded flex items-center justify-center">
-                <p>Sales Chart - Will be implemented later</p>
-              </div>
+            
+            <div className="p-4">
+              <h2 className="text-2xl font-bold mb-4">Dashboard Overview</h2>
+          
+              {loading ? (
+                <p>Loading statistics...</p>
+              ) : error ? (
+                <p className="text-red-500">{error}</p>
+              ) : (
+                <>
+                  {/* Cards thống kê */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div className="bg-white shadow-md rounded-lg p-6">
+                      <h3 className="text-lg font-semibold mb-2">Tổng số đơn hàng</h3>
+                      <p className="text-3xl font-bold">{statistics.total_orders}</p>
+                    </div>
+              
+                    <div className="bg-white shadow-md rounded-lg p-6">
+                      <h3 className="text-lg font-semibold mb-2">Tổng doanh thu</h3>
+                      <p className="text-3xl font-bold">
+                        {statistics.total_revenue?.toLocaleString()} ₫
+                      </p>
+                    </div>
+              
+                    <div className="bg-white shadow-md rounded-lg p-6">
+                      <h3 className="text-lg font-semibold mb-2">Đơn đang xử lý</h3>
+                      <p className="text-3xl font-bold">{statistics.processing_orders}</p>
+                    </div>
+              
+                    <div className="bg-white shadow-md rounded-lg p-6">
+                      <h3 className="text-lg font-semibold mb-2">Đơn đã hủy</h3>
+                      <p className="text-3xl font-bold">{statistics.cancelled_orders}</p>
+                    </div>
+              
+                    <div className="bg-white shadow-md rounded-lg p-6">
+                      <h3 className="text-lg font-semibold mb-2">Đơn đã hoàn thành</h3>
+                      <p className="text-3xl font-bold">{statistics.completed_orders}</p>
+                    </div>
+                  </div>
+              
+                  {/* Biểu đồ */}
+                  <div className="bg-white shadow-md rounded-lg p-6">
+                    <h3 className="text-lg font-semibold mb-4">Thống kê đơn hàng theo trạng thái</h3>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={[
+                        { name: "Processing", value: statistics.processing_orders || 0 },
+                        { name: "Completed", value: statistics.completed_orders || 0 },
+                        { name: "Cancelled", value: statistics.cancelled_orders || 0 }
+                      ]}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="name" />
+                        <YAxis allowDecimals={false} />
+                        <Tooltip />
+                        <Legend />
+                        <Bar dataKey="value" fill="#4F46E5" name="Số lượng" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </>
+              )}
             </div>
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-              <h3 className="text-lg font-medium mb-4">Product Performance</h3>
-              <div className="h-64 bg-gray-100 dark:bg-gray-700 rounded flex items-center justify-center">
-                <p>Product Chart - Will be implemented later</p>
-              </div>
-            </div>
+        
           </div>
         )}
 
@@ -255,6 +436,14 @@ export default function AdminDashboard({
                     value={productForm.data.price}
                     onChange={(e) => productForm.setData('price', e.target.value)}
                   />
+                  <input 
+                  type="text" 
+                  placeholder="Author" 
+                  className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500"
+                  value={productForm.data.author}
+                  onChange={(e) => productForm.setData('author', e.target.value)}
+                  required
+                />
                 </div>
 
                 <textarea 
@@ -283,15 +472,17 @@ export default function AdminDashboard({
                       <option key={category.id} value={category.id}>{category.name}</option>
                     ))}
                   </select>
+                  
                 </div>
 
-                <input 
-                  type="text" 
-                  placeholder="Image URL (optional)" 
+                <input
+                  type="text"
+                  placeholder="Image URL (optional)"
                   className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500"
                   value={productForm.data.image_url}
                   onChange={(e) => productForm.setData('image_url', e.target.value)}
                 />
+
 
                 <div className="flex gap-2">
                   <button 
@@ -323,6 +514,7 @@ export default function AdminDashboard({
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">ID</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Name</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Author</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Price</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Stock</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Category</th>
@@ -335,7 +527,8 @@ export default function AdminDashboard({
                       <tr key={product.id}>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{product.id}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{product.name}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">${(Number(product.price) || 0).toFixed(2)}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{product.author || 'N/A'}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{Number(product.price).toLocaleString("vi-VN")} VND</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{product.stock}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{product.category?.name || 'N/A'}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
@@ -386,49 +579,130 @@ export default function AdminDashboard({
         )}
 
         {/* Orders Tab */}
+        {/* Orders Tab */}
         {activeTab === 'orders' && (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
             <div className="p-6">
               <h3 className="text-lg font-medium mb-4">Manage Orders</h3>
+              
+              {/* Bộ lọc */}
+              <div className="flex flex-col md:flex-row gap-4 mb-4">
+                <select
+                  className="w-full md:w-48 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                  value={filters.status}
+                  onChange={(e) =>
+                    setFilters((prev) => ({ ...prev, status: e.target.value }))
+                  }
+                >
+                  <option value="">All Status</option>
+                  <option value="pending">Pending</option>
+                  <option value="processing">Processing</option>
+                  <option value="completed">Completed</option>
+                  <option value="cancelled">Cancelled</option>
+                  <option value="return">Return</option>
+                </select>
+                
+                <div className="flex items-center gap-2">
+                  <input
+                    type="date"
+                    className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                    value={filters.startDate}
+                    onChange={(e) => handleStartDateChange(e.target.value)}
+                    max={filters.endDate || undefined}
+                  />
+                  <span className="text-gray-500 dark:text-gray-400">to</span>
+                  <input
+                    type="date"
+                    className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                    value={filters.endDate}
+                    onChange={(e) => setFilters(prev => ({ ...prev, endDate: e.target.value }))}
+                    min={filters.startDate || undefined}
+                  />
+                </div>
+                
+                <button
+                  onClick={() => setFilters({ status: '', startDate: '', endDate: '' })}
+                  className="px-3 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600"
+                >
+                  Clear Filters
+                </button>
+                <button
+                  onClick={handleFindOrders}
+                  className="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                >
+                  Find
+                </button>
+              </div>
+
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                   <thead className="bg-gray-50 dark:bg-gray-700">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Order ID</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Customer</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Date</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Total</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Order date</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                    {orders.map((order) => (
+                    {filteredOrders.map((order) => (
                       <tr key={order.id}>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{order.id}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{order.user?.name || 'Guest'}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{new Date(order.created_at).toLocaleDateString()}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">${(Number(order.total_price) || 0).toFixed(2)}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{Number(order.total_price).toLocaleString("vi-VN")} VND</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{formatDateTime(order.created_at)}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                          <select 
-                            value={order.status} 
-                            className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white text-sm"
-                            disabled
-                          >
-                            <option value="pending">Pending</option>
-                            <option value="processing">Processing</option>
-                            <option value="completed">Completed</option>
-                            <option value="cancelled">Cancelled</option>
-                            <option value="return">Return</option>
-                          </select>
+                          {editingOrder === order.id ? (
+                            <select
+                              className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                              value={selectedStatus[order.id] || order.status}
+                              onChange={(e) => handleStatusChange(order.id, e.target.value)}
+                            >
+                              <option value="pending">Pending</option>
+                              <option value="processing">Processing</option>
+                              <option value="completed">Completed</option>
+                              <option value="cancelled">Cancelled</option>
+                              <option value="return">Return</option>
+                            </select>
+                          ) : (
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              order.status === 'completed' ? 'bg-green-100 text-green-800' :
+                              order.status === 'processing' ? 'bg-blue-100 text-blue-800' :
+                              order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                              order.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                              'bg-purple-100 text-purple-800'
+                            }`}>
+                              {order.status}
+                            </span>
+                          )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                          <button 
-                            className="px-3 py-1 bg-blue-200 dark:bg-blue-600 text-blue-800 dark:text-white rounded-md hover:bg-blue-300 dark:hover:bg-blue-500"
-                            disabled
-                          >
-                            View
-                          </button>
+                          {editingOrder === order.id ? (
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handleSaveStatus(order.id)}
+                                className="px-3 py-1 bg-green-600 text-white rounded-md hover:bg-green-700"
+                                disabled={orderForm.processing}
+                              >
+                                {orderForm.processing ? 'Saving...' : 'Save'}
+                              </button>
+                              <button
+                                onClick={() => handleCancelEdit(order.id)}
+                                className="px-3 py-1 bg-gray-500 text-white rounded-md hover:bg-gray-600"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => handleStartEditOrder(order)}
+                              className="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                            >
+                              Change Status
+                            </button>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -442,6 +716,3 @@ export default function AdminDashboard({
     </AdminLayout>
   );
 }
-
-
-
